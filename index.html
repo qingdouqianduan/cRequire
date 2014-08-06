@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <title>require test</title>
+    <script src="cRequire.js"></script>
+    <!--<script src="mass.js"></script>-->
+</head>
+<body>
+<script>
+
+
+    _.config({
+
+        paths: {
+            'jquery': 'oftenjs/jquery-1.11.1',
+            'tinyscrollbar': {
+                src : 'oftenjs/tinyscrollbar',
+                deps: ['jquery'],
+                expors: 'ts'
+            }
+        }
+
+    });
+
+
+    _.require(['jquery', 'tinyscrollbar'], function ($, tiny) {
+
+
+    })
+
+    //$.config({
+    //    alias:{
+    //        'jquery' : 'often/jquery-1.11.1'
+    //    }
+    //});
+
+    //
+    //$.require('oftenjs/jquery-1.11.1,/oftenjs/tinyscrollbar',function($,tiny){
+    //
+    //
+    //})
+
+
+</script>
+
+</body>
+</html>
