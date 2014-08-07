@@ -410,19 +410,24 @@ void function(global, DOC) {
 
     function checkDeps() {
         //检测此JS模块的依赖是否都已安装完毕,是则安装自身
+
         loop: for (var i = loadings.length, id; id = loadings[--i]; ) {
+
             var obj = modules[id],
                 deps = obj.deps;
+
             for (var key in deps) {
+
                 if (hasOwn.call(deps, key) && modules[key].state !== 2) {
                     continue loop;
                 }
             }
+
             //如果deps是空对象或者其依赖的模块的状态都是2
             if (obj.state !== 2) {
                 loadings.splice(i, 1); //必须先移除再安装，防止在IE下DOM树建完后手动刷新页面，会多次执行它
                 fireFactory(obj.id, obj.args, obj.factory);
-                checkDeps();//如果成功,则再执行一次,以防有些模块就差本模块没有安装好
+                //checkDeps();//如果成功,则再执行一次,以防有些模块就差本模块没有安装好
             }
         }
     }
@@ -490,12 +495,15 @@ void function(global, DOC) {
         }
         //3. 开始加载JS或CSS
         if (ext === "js") {
+
             if (!modules[src]) { //如果之前没有加载过
+
                 modules[src] = {
                     id: src,
                     parent: parent,
                     exports: {}
                 };
+
                 if (shim) {//shim机制
                     require(shim.deps || "", function() {
                         loadJS(src, function() {
@@ -574,8 +582,7 @@ void function(global, DOC) {
             id = parent || "callback" + setTimeout("1");
         parent = parent || basepath;
         String(list).replace($.rword, function(el) {
-
-            var url = loadJSCSS(el, parent)
+            var url = loadJSCSS(el, parent);
             if (url) {
                 dn++;
                 if (modules[url] && modules[url].state === 2) {
@@ -611,52 +618,52 @@ void function(global, DOC) {
      * @param {Function} factory 模块工厂
      * @api public
      */
-    window.define = $.define = function(id, deps, factory) { //模块名,依赖列表,模块本身
-        var args = $.slice(arguments);
-        if (typeof id === "string") {
-            var _id = args.shift();
-        }
-        if (typeof args[0] === "boolean") { //用于文件合并, 在标准浏览器中跳过补丁模块
-            if (args[0]) {
-                return;
-            }
-            args.shift();
-        }
-        if (typeof args[0] === "function") {
-            args.unshift([]);
-        } //上线合并后能直接得到模块ID,否则寻找当前正在解析中的script节点的src作为模块ID
-        //现在除了safari外，我们都能直接通过getCurrentScript一步到位得到当前执行的script节点，
-        //safari可通过onload+delay闭包组合解决
-        id = modules[id] && modules[id].state >= 1 ? _id : getCurrentScript();
-        if (!modules[name] && _id ) {
-            modules[name] = {
-                id: name,
-                factory: factory,
-                state: 1
-            }
-        }
-        factory = args[1];
-        factory.id = _id; //用于调试
-        factory.delay = function(id) {
-            args.push(id);
-            var isCycle = true;
-            try {
-                isCycle = checkCycle(modules[id].deps, id);
-            } catch (e) {
-            }
-            if (isCycle) {
-                $.error(id + "模块与之前的某些模块存在循环依赖");
-            }
-            delete factory.delay; //释放内存
-            require.apply(null, args); //0,1,2 --> 1,2,0
-        };
-        if (id) {
-            factory.delay(id, args);
-        } else { //先进先出
-            factorys.push(factory);
-        }
-    };
-    $.define.amd = modules;
+//    window.define = $.define = function(id, deps, factory) { //模块名,依赖列表,模块本身
+//        var args = $.slice(arguments);
+//        if (typeof id === "string") {
+//            var _id = args.shift();
+//        }
+//        if (typeof args[0] === "boolean") { //用于文件合并, 在标准浏览器中跳过补丁模块
+//            if (args[0]) {
+//                return;
+//            }
+//            args.shift();
+//        }
+//        if (typeof args[0] === "function") {
+//            args.unshift([]);
+//        } //上线合并后能直接得到模块ID,否则寻找当前正在解析中的script节点的src作为模块ID
+//        //现在除了safari外，我们都能直接通过getCurrentScript一步到位得到当前执行的script节点，
+//        //safari可通过onload+delay闭包组合解决
+//        id = modules[id] && modules[id].state >= 1 ? _id : getCurrentScript();
+//        if (!modules[name] && _id ) {
+//            modules[name] = {
+//                id: name,
+//                factory: factory,
+//                state: 1
+//            }
+//        }
+//        factory = args[1];
+//        factory.id = _id; //用于调试
+//        factory.delay = function(id) {
+//            args.push(id);
+//            var isCycle = true;
+//            try {
+//                isCycle = checkCycle(modules[id].deps, id);
+//            } catch (e) {
+//            }
+//            if (isCycle) {
+//                $.error(id + "模块与之前的某些模块存在循环依赖");
+//            }
+//            delete factory.delay; //释放内存
+//            require.apply(null, args); //0,1,2 --> 1,2,0
+//        };
+//        if (id) {
+//            factory.delay(id, args);
+//        } else { //先进先出
+//            factorys.push(factory);
+//        }
+//    };
+//    $.define.amd = modules;
     /**
      * 请求模块从modules对象取得依赖列表中的各模块的返回值，执行factory, 完成模块的安装
      * @param {String} id  模块ID
@@ -666,9 +673,11 @@ void function(global, DOC) {
      */
 
     function fireFactory(id, deps, factory) {
+        alert(1)
         for (var i = 0, array = [], d; d = deps[i++]; ) {
             array.push(modules[d].exports);
         }
+        console.log(array)
         var module = Object(modules[id]),
             ret = factory.apply(global, array);
         module.state = 2;
@@ -685,7 +694,7 @@ void function(global, DOC) {
 
     function fireReady() {
         modules.ready.state = 2;
-        checkDeps();
+        //checkDeps();
         if (readyFn) {
             $.unbind(DOC, ready, readyFn);
         }

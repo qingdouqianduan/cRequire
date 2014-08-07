@@ -1,7 +1,8 @@
-(function () {
+(function ( win ) {
 
-    var root = this,
+    var root = win,
         moduleClass = "clubman" + (new Date - 0),
+        loadings = [],
         core;
 
 
@@ -65,7 +66,7 @@
         if (_.config.paths[url]) {
             //paths路径 类 often/jquery-1.11.1
             ret = _.config.paths[url];
-            if (typeof ret === 'object'){
+            if (typeof ret === 'object') {
                 shim = ret;
                 ret = shim.src;
             }
@@ -96,24 +97,35 @@
         }
         // ret 加载路径
         // ret 是否有后缀 例 : .js .css
-        var src = ret.replace(/[?#].*/,''),mate;
-        if (/\.(js|css)$/.test(src)){
+        var src = ret.replace(/[?#].*/, ''), mate;
+        if (/\.(js|css)$/.test(src)) {
             mate = RegExp.$1;
         }
-        if (!mate){
+        if (!mate) {
             src += '.js';
             mate = 'js';
         }
         //开始加载js或css
-        if( mate === 'js') {
+        if (mate === 'js') {
             //如果之前没有加载过
-            if (!modules[src]){
+            if (!modules[src]) {
                 modules[src] = {
                     id: src,
                     parent: parent,
                     exports: {}
                 };
-                loadJs(src);
+                if (shim) {
+                    _.require(shim.deps || '', function () {
+                        loadJs(src, function () {
+                            modules[src].state = 2;
+                            modules[src].exprots = typeof shim.exports === 'function' ?
+                                shim.exports() : window[shim.exports];
+                            checkDeps();
+                        })
+                    });
+                } else {
+                    loadJs(src);
+                }
             }
             return src;
         } else {
@@ -124,21 +136,26 @@
     //js 加载处理
     function loadJs(url, callback) {
         var node = document.createElement('script');
-            node.className = moduleClass;
-            node[document.dispatchEvent ? 'onload' : 'onreadystatechange'] = function () {
-                if (document.dispatchEvent || /loaded|complete/i.test(node.readyState)) {
-                    if ( checkDie(node, false, !document.dispatchEvent) ) {
-                        console.log("已成功加载 " + node.src);
-                    }
+        node.className = moduleClass;
+        node[document.dispatchEvent ? 'onload' : 'onreadystatechange'] = function () {
+            if (document.dispatchEvent || /loaded|complete/i.test(node.readyState)) {
+
+                if (callback) {
+                    callback();
+                }
+                if (checkDie(node, false, !document.dispatchEvent)) {
+                    console.log("已成功加载 " + node.src);
                 }
             }
-        node.onerror = function() {
+        }
+        node.onerror = function () {
             checkDie(node, true);
         }
         node.src = url;
         document.head.insertBefore(node, document.head.firstChild);
         console.log("正准备加载 " + node.src);
     }
+
     //css 加载处理
     function loadCss(url) {
         var id = url.replace(/(#.+|\W)/g, '');
@@ -156,22 +173,49 @@
     function checkDie(node, onError, IE) {
         var id = node.src;
         node.onload = node.onreadystatechange = node.onerror = null;
-        if (onError || (IE && !modules[id].state) ) {
-            setTimeout(function(){
+        if (onError || (IE && !modules[id].state)) {
+            setTimeout(function () {
                 document.head.removeChild(node);
             });
             console.log("加载 " + id + " 失败!");
-        }else{
+        } else {
             return true;
         }
     }
 
-    function fireFactory(id, deps, factory){
+    //检测依赖是否加载完成
+    function checkDeps() {
+        loop : for (var i = loadings.length, id; id = loadings[--i];) {
+            var obj = modules[id],
+                deps = obj.deps;
+                for (var key in deps) {
+                    if (hasOwn.call(deps, key) && modules[key].state !== 2) {
+                        continue loop;
+                    }
+                }
 
-
+            if (obj.state !== 2) {
+                loadings.splice(i, 1); //删除这项
+                fireFactory(obj.id, obj.args, obj.factory);
+                checkDeps();
+            }
+        }
     }
 
-    _.require = function (list, factory, parent) {
+    function fireFactory(id, deps, factory) {
+        for (var i = 0, array = [], d; d = deps[i++];) {
+            array.push(modules[d].exprots);
+        }
+        var module = Object(array),
+            ret = factory.apply(root, array);
+        module.state = 2;
+        if (ret !== void 0) {
+            modules[id].exports = ret;
+        }
+        return ret;
+    }
+
+    window.reuqire = _.require = function (list, factory, parent) {
         // 用于检测它的依赖是否都为2
         var deps = {},
         // 用于保存依赖模块的返回值
@@ -187,27 +231,36 @@
             var url = loadCssJs(v, parent);
             if (url) {
                 dn++;
-                if (modules[url]) {
+                if (modules[url] && modules[url].state === 2) {
                     cn++;
                 }
-                args.push(url);
+                if (!deps[url]) {
+                    args.push(url);
+                }
             }
         });
 
         modules[id] = {//创建一个对象,记录模块的加载情况与其他信息
             id: id,
             factory: factory,
+            deps: deps,
             args: args,
+            state: 1
         }
         //需要安装与安装数
-        if ( dn === cn ) {
+
+        if (dn === cn) {
             fireFactory(id, args, factory);
+        } else {
+            loadings.unshift(id);
         }
-
-
+        checkDeps();
     }
 
 
     root._ = _;
 
-}).call(this);
+
+
+
+})(self)
